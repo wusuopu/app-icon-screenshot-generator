@@ -1,4 +1,5 @@
 const electron = require('electron');
+const _ = require('lodash');
 
 const IconItem = React.createClass({
   render() {
@@ -105,13 +106,76 @@ const IconPage = React.createClass({
     electron.shell.showItemInFolder(IconKit.OUT_DIR);
   }
 });
+
+
 const ScrotPage = React.createClass({
+  getInitialState() {
+    return {
+      status: 'start'   // start | finish
+    };
+  },
   render() {
+    let content;
+    if (this.state.status === 'finish') {
+      let images = [];
+      _.each(this.state.result, (files, device) => {
+        images.push(
+          <div key={device}>
+            <h3>iphone {device}</h3>
+            {
+              _.map(files, (f, index) => {
+                return <img key={index} src={f} alt="" />
+              })
+            }
+          </div>
+        );
+      });
+      content = (
+        <div>
+          <div>截图已生成到 <a href="#" onClick={this.openFolder}>{ScrotKit.OUT_DIR}</a></div>
+          {images}
+        </div>
+      );
+    }
+
     return (
-      <div>
-        Work in Process
+      <div className="container">
+        <form>
+          <div className="form-group">
+            <label>选择截图文件</label>
+            <input type="file" ref="file" accept="image/*" multiple />
+          </div>
+          <button className="btn btn-primary" onClick={this.generateScrots}>生成</button>
+        </form>
+
+        <hr />
+
+        {content}
       </div>
     );
+  },
+  generateScrots() {
+    if (this.refs.file.files.length === 0) {
+      return;
+    }
+    if (this.state.status === 'finish') {
+      this.setState({status: 'start'});
+    }
+    let files = _.map(this.refs.file.files, (f) => {
+      return f.path;
+    });
+
+    setTimeout(() => {
+      ScrotKit.generateIOS( files, (err, result) => {
+        if (!err) {
+          this.setState({status: 'finish', result});
+        }
+      } );
+    }, 500);
+  },
+
+  openFolder() {
+    electron.shell.showItemInFolder(ScrotKit.OUT_DIR);
   }
 });
 
@@ -128,7 +192,7 @@ const Container = React.createClass({
             <a href="#icon" aria-controls="icon" role="tab" data-toggle="tab">App Icon</a>
           </li>
           <li role="presentation">
-            <a href="#scrot" aria-controls="scrot" role="tab" data-toggle="tab">App Scrot</a>
+            <a href="#scrot" aria-controls="scrot" role="tab" data-toggle="tab">AppStore Scrot</a>
           </li>
         </ul>
         <div className="tab-content">
