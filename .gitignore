@@ -60,3 +60,6 @@ tags
 *.mid
 *.log
 *~
+
+.DS_Store
+output/
