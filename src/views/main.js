@@ -61,8 +61,8 @@ const IconPage = React.createClass({
     if (this.state.status === 'finish') {
       content = (
         <div>
-          <div>图标已生成到 <a href="#" onClick={this.openFolder}>{IconKit.OUT_DIR}</a></div>
-          <IconList path={IconKit.OUT_DIR} />
+          <div>图标已生成到 <a href="#" onClick={this.openFolder}>{this.state.result}</a></div>
+          <IconList path={this.state.result} />
         </div>
       );
     }
@@ -78,7 +78,7 @@ const IconPage = React.createClass({
               <input type="checkbox" ref="surround" /> Android使用圆角
             </label>
           </div>
-          <button className="btn btn-primary" onClick={this.generateIcons}>生成</button>
+          <a href="#" className="btn btn-primary" onClick={this.generateIcons}>生成</a>
         </form>
 
         <hr />
@@ -96,14 +96,16 @@ const IconPage = React.createClass({
       this.setState({status: 'start'});
     }
     setTimeout(() => {
-      IconKit.generateAndroid( this.refs.file.files[0].path, this.refs.surround.checked );
-      IconKit.generateIOS( this.refs.file.files[0].path );
-      this.setState({status: 'finish'});
+      IconKit.generate( this.refs.file.files[0].path, this.refs.surround.checked, (err, result) => {
+        if (!err) {
+          this.setState({status: 'finish', result});
+        }
+      });
     }, 500);
   },
 
   openFolder() {
-    electron.shell.showItemInFolder(IconKit.OUT_DIR);
+    electron.shell.showItemInFolder(this.state.result);
   }
 });
 
@@ -145,7 +147,7 @@ const ScrotPage = React.createClass({
             <label>选择截图文件</label>
             <input type="file" ref="file" accept="image/*" multiple />
           </div>
-          <button className="btn btn-primary" onClick={this.generateScrots}>生成</button>
+          <a href="#" className="btn btn-primary" onClick={this.generateScrots}>生成</a>
         </form>
 
         <hr />

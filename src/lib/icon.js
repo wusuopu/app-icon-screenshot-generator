@@ -6,9 +6,10 @@ const fs = require('fs');
 const os = require('os');
 const mkdirp = require('mkdirp');
 const child_process = require('child_process');
+const async = require('async');
 
 
-const OUT_DIR = os.tmpDir() + '/app-icon/output';
+let OUT_DIR = os.tmpDir() + '/app-icon/output';
 
 const androidIconSize = {
   // 'web': { w: 512, h: 512 },
@@ -215,14 +216,15 @@ const watchContents = `
 }
 `;
 
-function generateAndroid(inputFile, surround) {
+function generateAndroid(inputFile, surround, done) {
   mkdirp.sync(`${OUT_DIR}/android`);
-  _.each(androidIconSize, (size, name) => {
+
+  async.forEachOfSeries(androidIconSize, (size, name, next) => {
     let tmpFile = `${os.tmpdir()}/android-${size.w}x${size.h}-${Date.now()}.png`;
     gm(inputFile).resize(size.w, size.h).write(tmpFile, (err) => {
       if (err) {
         console.log(`generate android's icon err[${name}]:`, err);
-        return;
+        return next(err);
       }
       let output = `${OUT_DIR}/android/mipmap-${name}`;
       let maskFile = `${__dirname}/../assets/android-mask/mask-${name}.png`;
@@ -235,18 +237,15 @@ function generateAndroid(inputFile, surround) {
         fs.writeFileSync(`${output}/ic_launcher.png`, fs.readFileSync(tmpFile));
       }
       fs.unlinkSync(tmpFile);
+      next();
     });
-  });
-  // generate a icon used in web
-  gm(inputFile).resize(512, 512).write(`${OUT_DIR}/android/playstore-icon.png`, (err) => {
-      if (err) {
-        console.log(`generate android's icon err[playstore]:`, err);
-        return;
-      }
+  }, (err) => {
+    // generate a icon used in web
+    gm(inputFile).resize(512, 512).write(`${OUT_DIR}/android/playstore-icon.png`, done);
   });
 }
 
-function generateIOS(inputFile) {
+function generateIOS(inputFile, done) {
   let imageDir = `${OUT_DIR}/ios`;
   let iphoneIconDir = `${imageDir}/AppIcon.appiconset`;
   let watchIconDir = `${OUT_DIR}/watchkit/AppIcon.appiconset`;
@@ -254,33 +253,32 @@ function generateIOS(inputFile) {
   mkdirp.sync(iphoneIconDir);
   mkdirp.sync(watchIconDir);
 
-  _.each(iosImagesIsze, (size, name) => {
-    gm(inputFile).resize(size.w, size.h).write(`${imageDir}/${name}`, (err) => {
-      if (err) {
-        console.log(`generate ios's icon err[${name}]:`, err);
-        return;
-      }
-    });
-  });
-  _.each(iphoneIconSize, (size, name) => {
-    gm(inputFile).resize(size.w, size.h).write(`${iphoneIconDir}/${name}`, (err) => {
-      if (err) {
-        console.log(`generate iphone's icon err[${name}]:`, err);
-        return;
-      }
-    });
-  });
-  _.each(appleWatchIconSize, (size, name) => {
-    gm(inputFile).resize(size.w, size.h).write(`${watchIconDir}/${name}`, (err) => {
-      if (err) {
-        console.log(`generate apple watch's icon err[${name}]:`, err);
-        return;
-      }
-    });
-  });
+  async.series([
+    (cb) => {
+      async.forEachOfSeries(iosImagesIsze, (size, name, next) => {
+        gm(inputFile).resize(size.w, size.h).write(`${imageDir}/${name}`, next);
+      }, cb);
+    },
+    (cb) => {
+      async.forEachOfSeries(iphoneIconSize, (size, name, next) => {
+        gm(inputFile).resize(size.w, size.h).write(`${iphoneIconDir}/${name}`, next);
+      }, cb);
+    },
+    (cb) => {
+      async.forEachOfSeries(appleWatchIconSize, (size, name, next) => {
+        gm(inputFile).resize(size.w, size.h).write(`${watchIconDir}/${name}`, next);
+      }, cb);
+    },
+    (cb) => {
+      fs.writeFileSync(`${iphoneIconDir}/Contents.json`, iphoneContents);
+      fs.writeFileSync(`${watchIconDir}/Contents.json`, watchContents);
+      cb();
+    }
+  ], done);
+}
 
-  fs.writeFileSync(`${iphoneIconDir}/Contents.json`, iphoneContents);
-  fs.writeFileSync(`${watchIconDir}/Contents.json`, watchContents);
+function updateOutDir() {
+  OUT_DIR = os.tmpDir() + '/app-icon/' + Date.now();
 }
 
 if (process.argv[1] === __filename) {
@@ -298,12 +296,28 @@ if (process.argv[1] === __filename) {
     console.log(`${filename} is not a normal file`);
     process.exit(1);
   }
+  updateOutDir();
   generateAndroid(filename, true);
   generateIOS(filename);
 }
 
+function generate(inputFile, surround, done) {
+  updateOutDir();
+  async.series([
+    (cb) => {
+      generateAndroid(inputFile, surround, cb);
+    },
+    (cb) => {
+      generateIOS(inputFile, cb);
+    }
+  ], (err) => {
+    done(err, OUT_DIR);
+  });
+}
+
 module.exports = {
-  generateIOS,
-  generateAndroid,
-  OUT_DIR
+  generate,
+  getOutDir() {
+    return OUT_DIR;
+  }
 };
