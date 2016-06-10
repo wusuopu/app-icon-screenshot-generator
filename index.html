@@ -2,12 +2,20 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Hello World!</title>
+    <title>App Icon制作工具</title>
+    <script src="src/assets/js/react/react.min.js"></script>
+    <script src="src/assets/js/react/react-dom.min.js"></script>
+    <script src="src/assets/js/bable/browser.min.js"></script>
+    <link rel="stylesheet" href="src/assets/css/bootstrap/css/bootstrap.min.css" type="text/css" media="screen" charset="utf-8">
   </head>
   <body>
-    <h1>Hello World!</h1>
-    We are using node <script>document.write(process.versions.node)</script>,
-    Chrome <script>document.write(process.versions.chrome)</script>,
-    and Electron <script>document.write(process.versions.electron)</script>.
+    <div id="main"> </div>
+
+    <script type="text/javascript">
+        window.$ = window.jQuery = require('./src/assets/js/jquery/jquery.min.js');
+        window.IconKit = require('./src/lib/icon.js');
+    </script>
+    <script src="src/assets/js/bootstrap/bootstrap.min.js"></script>
+    <script src="src/views/main.js" type="text/babel"></script>
   </body>
 </html>

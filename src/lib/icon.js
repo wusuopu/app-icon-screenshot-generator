@@ -8,7 +8,7 @@ const mkdirp = require('mkdirp');
 const child_process = require('child_process');
 
 
-const OUT_DIR = __dirname + '/output/icon';
+const OUT_DIR = os.tmpDir() + '/app-icon/output';
 
 const androidIconSize = {
   // 'web': { w: 512, h: 512 },
@@ -225,7 +225,7 @@ function generateAndroid(inputFile, surround) {
         return;
       }
       let output = `${OUT_DIR}/android/mipmap-${name}`;
-      let maskFile = `${__dirname}/android-mask/mask-${name}.png`;
+      let maskFile = `${__dirname}/../assets/android-mask/mask-${name}.png`;
       mkdirp.sync(output);
 
       if (surround) {
@@ -304,5 +304,6 @@ if (process.argv[1] === __filename) {
 
 module.exports = {
   generateIOS,
-  generateAndroid
+  generateAndroid,
+  OUT_DIR
 };
